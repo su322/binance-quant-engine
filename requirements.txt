@@ -1,3 +1,14 @@
 fastapi
 uvicorn[standard]
-pydantic-settings
+black
+mypy
+
+binance-connector
+binance-futures-connector
+pandas
+matplotlib
+plotly
+numpy
+requests
+pydantic
+aiohttp

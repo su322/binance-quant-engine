@@ -1,0 +1,22 @@
+# 注意：请将此文件重命名为 config.ini 并填写您的真实密钥
+# Note: Please rename this file to config.ini and fill in your real keys
+
+[keys]
+real_api_key = your_real_api_key_here
+real_secret_key = your_real_secret_key_here
+
+# 现货测试网 spot test net
+spot_test_api_key = your_spot_test_api_key_here
+spot_test_secret_key = your_spot_test_secret_key_here
+
+# 模拟交易 demo trading
+future_test_api_key = your_future_test_api_key_here
+future_test_secret_key = your_future_test_secret_key_here
+
+[urls]
+spot_base_url = https://testnet.binance.vision
+future_base_url = https://testnet.binancefuture.com
+
+[system]
+# 日志开关 (true/false)
+enable_logging = true

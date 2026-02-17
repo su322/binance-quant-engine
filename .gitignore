@@ -8,3 +8,12 @@ __pycache__/
 
 # temp
 .DS_Store
+
+# Config
+backend/core/config.ini
+
+# Data
+backend/data/
+
+# Tests
+tests/
