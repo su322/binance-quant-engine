@@ -10,7 +10,7 @@ __pycache__/
 .DS_Store
 
 # Config
-backend/core/config.ini
+backend/core/config.yaml
 
 # Data
 backend/data/

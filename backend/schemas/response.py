@@ -41,13 +41,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
+from backend.core.exceptions import QuantEngineError
+
 async def global_exception_handler(request: Request, exc: Exception):
     """
     处理所有未捕获的异常
     """
+    code = 500
+    message = f"Internal Server Error: {str(exc)}"
+    
+    if isinstance(exc, QuantEngineError):
+        code = exc.code
+        message = exc.message
+
     return JSONResponse(
-        status_code=500,
+        status_code=code if 100 <= code < 600 else 500, # Ensure valid HTTP status code
         content=StandardResponse[None](
-            code=500, message=f"Internal Server Error: {str(exc)}", data=None
+            code=code, message=message, data=getattr(exc, "details", None)
         ).model_dump(),
     )

@@ -4,7 +4,8 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 from backend.core.logger import get_logger
-from backend.core.event_bus import event_bus, Event, EventType
+from backend.core.event_bus import event_bus, Event
+from backend.enums.event import EventType
 from backend.routers.router import router
 from backend.schemas.response import (
     StandardResponse,

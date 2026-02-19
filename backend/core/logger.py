@@ -1,7 +1,7 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from .config_loader import get_config
+from .config import settings
 
 # 默认日志目录
 LOG_DIR = os.path.join(
@@ -40,10 +40,10 @@ class Logger:
 
         # 读取配置开关
         # 用户要求: 不使用 try-except 包裹配置读取
-        enable_logging = get_config("enable_logging", section="system")
+        enable_logging = settings.system.enable_logging
 
         # 仅支持 true (不区分大小写)
-        if str(enable_logging).lower() != "true":
+        if not enable_logging:
             self.logger.addHandler(logging.NullHandler())
             return
 

@@ -4,10 +4,13 @@ from typing import Dict, Any
 
 import pandas as pd
 
-from backend.services.base import BaseBroker, Order, OrderSide, OrderType, OrderStatus
+from backend.exchange.base import BaseBroker
+from backend.models.order import Order
+from backend.enums.types import OrderSide, OrderType, OrderStatus, MarketType
 from backend.core.logger import get_logger
 from backend.strategies.registry import StrategyRegistry
-from backend.services.execution_service import BacktestBroker
+from backend.services.backtest.spot import SpotBacktestBroker
+from backend.services.backtest.future import FutureBacktestBroker
 
 # 临时 hack，确保能导入策略
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -56,7 +59,11 @@ class BacktestService:
         logger.info(f"Loaded {len(df)} candles")
 
         # 2. 初始化 Broker 和 Strategy
-        broker = BacktestBroker(initial_balance)
+        market_type_str = params.get("market_type", "SPOT")
+        if market_type_str == "USDT_FUTURE":
+            broker = FutureBacktestBroker(initial_balance)
+        else:
+            broker = SpotBacktestBroker(initial_balance)
 
         # 构造策略配置
         config = {"symbol": symbol}
@@ -67,7 +74,7 @@ class BacktestService:
         if not strategy_class:
             # 尝试根据名称推断 (临时处理，未来应该完善注册机制)
             if strategy_name == "GridStrategy":
-                from backend.strategies.grid import GridStrategy
+                from backend.strategies.spot.grid import GridStrategy
 
                 strategy_class = GridStrategy
             else:
@@ -98,9 +105,26 @@ class BacktestService:
         await strategy.stop()
 
         # 4. 计算结果
-        final_balance = broker.balance + (broker.asset * broker.current_price)
+        # 注意: 这里的 asset * current_price 计算可能对合约不准确 (合约是 margin + unrealized_pnl)
+        # 应该使用 get_account_balance("USDT")
+        
+        final_balance = broker.get_account_balance("USDT")
+        # 兼容旧逻辑，如果 get_account_balance 返回 0 或者异常，回退?
+        # SpotBacktestBroker 和 FutureBacktestBroker 都实现了 get_account_balance("USDT")
+        
+        # SpotBacktestBroker: return self.balance (cash)
+        # Wait, SpotBacktestBroker.get_account_balance("USDT") only returns cash balance.
+        # But we want total equity (cash + asset value).
+        
+        if isinstance(broker, SpotBacktestBroker):
+             final_balance = broker.balance + (broker.asset * broker.current_price)
+        else:
+             final_balance = broker.get_account_balance("USDT")
+
         profit = final_balance - initial_balance
-        profit_percent = (profit / initial_balance) * 100
+        profit_percent = 0.0
+        if initial_balance > 0:
+            profit_percent = (profit / initial_balance) * 100
 
         result = {
             "strategy_name": strategy_name,
@@ -143,37 +167,6 @@ class BacktestService:
         获取具体回测结果详情
         """
         return self.backtest_results.get(backtest_id)
-
-        # 防止除零错误
-        profit_percentage = 0.0
-        if initial_balance > 0:
-            profit_percentage = (profit / initial_balance) * 100
-
-        result = {
-            "total_trades": len(broker.trades),
-            "final_balance": round(final_balance, 2),
-            "profit": round(profit, 2),
-            "profit_percentage": round(profit_percentage, 2),
-            "trades": broker.trades,
-        }
-
-        logger.info(f"Backtest finished. Profit: {result['profit']}")
-        return result
-
-    def cancel_order(self, order_id: str):
-        pass
-
-    def get_account_balance(self, asset: str) -> float:
-        return 0.0
-
-    def get_open_orders(self, symbol: str) -> List[Order]:
-        return []
-
-    def get_position(self, symbol: str) -> Dict[str, float]:
-        return {}
-
-    def get_history_orders(self, symbol: str, limit: int = 10) -> List[Order]:
-        return []
 
 
 backtest_service = BacktestService()

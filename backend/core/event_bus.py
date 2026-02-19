@@ -1,23 +1,9 @@
 import asyncio
-from enum import Enum
 from typing import Callable, List, Dict, Any
-from .logger import get_logger
+from backend.core.logger import get_logger
+from backend.enums.event import EventType
 
 logger = get_logger("EventBus")
-
-
-class EventType(str, Enum):
-    """
-    事件类型枚举
-    """
-
-    TICKER_UPDATE = "TICKER_UPDATE"  # 行情更新
-    ORDER_FILLED = "ORDER_FILLED"  # 订单成交
-    STRATEGY_SIGNAL = "STRATEGY_SIGNAL"  # 策略信号
-    SYSTEM_ERROR = "SYSTEM_ERROR"  # 系统错误
-    STRATEGY_STARTED = "STRATEGY_STARTED"  # 策略启动
-    STRATEGY_STOPPED = "STRATEGY_STOPPED"  # 策略停止
-
 
 class Event:
     """
@@ -27,7 +13,11 @@ class Event:
     def __init__(self, type: str, data: Dict[str, Any] = None):
         self.type = type
         self.data = data or {}
-        self.timestamp = asyncio.get_event_loop().time()
+        try:
+             self.timestamp = asyncio.get_event_loop().time()
+        except RuntimeError:
+             import time
+             self.timestamp = time.time()
 
 
 class EventBus:

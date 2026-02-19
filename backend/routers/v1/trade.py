@@ -6,7 +6,7 @@ from backend.schemas.trade import (
     StrategyStatusResponse,
 )
 from backend.schemas.response import StandardResponse
-from backend.services.trade_service import trade_service
+from backend.services.live.engine import trade_service
 from backend.core.logger import get_logger
 
 router = APIRouter(prefix="/trade", tags=["trade"])

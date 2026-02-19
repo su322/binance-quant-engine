@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from backend.schemas.data import DownloadRequest, FileListResponse
 from backend.schemas.response import StandardResponse
-from backend.services.data_service import data_service
+from backend.services.data.manager import data_service
 from backend.core.logger import get_logger
 
 router = APIRouter(prefix="/data", tags=["data"])

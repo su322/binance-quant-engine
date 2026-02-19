@@ -4,11 +4,13 @@ from typing import Dict, Any, List
 
 from binance.spot import Spot as Client
 
-from backend.services.base import Order, OrderType, OrderStatus
-from backend.core.config_loader import get_config
+from backend.models.order import Order
+from backend.enums.types import OrderType, OrderStatus
+from backend.core.config import settings
 from backend.core.logger import get_logger
 from backend.strategies.registry import StrategyRegistry
-from backend.services.execution_service import LiveBroker
+from backend.services.live.spot import SpotLiveBroker
+from backend.services.live.future import FutureLiveBroker
 
 logger = get_logger("TradeService")
 
@@ -36,7 +38,7 @@ class TradeService:
         if not strategy_class:
             # 临时 hack
             if strategy_name == "GridStrategy":
-                from backend.strategies.grid import GridStrategy
+                from backend.strategies.spot.grid import GridStrategy
 
                 strategy_class = GridStrategy
             else:
@@ -48,13 +50,36 @@ class TradeService:
         strategy = strategy_class(strategy_name, config)
 
         # 3. 初始化实盘 Broker
-        broker = LiveBroker(symbol)
+        # 从配置中获取 API Key
+        # 假设 params 中有 market_type，或者默认 SPOT
+        market_type = params.get("market_type", "SPOT")
+        
+        # 获取 API Key
+        # api_key, api_secret = settings.get_spot_test_keys()
+        
+        # testnet base_url
+        base_url = settings.urls.spot_test_base_url
+        future_base_url = settings.urls.future_test_base_url
+
+        if market_type == "USDT_FUTURE":
+            # TODO: Future keys
+            # Currently using spot test keys for future as placeholder if not defined
+            # future_api_key, future_secret_key = settings.get_future_test_keys()
+            # For now, manually fallback to allow using spot keys for test
+            future_api_key = settings.keys.future_test_api_key or settings.keys.spot_test_api_key
+            future_secret_key = settings.keys.future_test_secret_key or settings.keys.spot_test_secret_key
+            
+            broker = FutureLiveBroker(future_api_key, future_secret_key, base_url=future_base_url)
+        else:
+            api_key, api_secret = settings.get_spot_test_keys()
+            broker = SpotLiveBroker(api_key, api_secret, base_url=base_url)
+
         strategy.set_broker(broker)
 
         # 4. 启动策略循环 (在后台运行)
         # 注意：这里需要一个机制来持续获取行情并喂给策略
         # 简单起见，我们在这里启动一个 loop
-        task = asyncio.create_task(self._strategy_loop(strategy, symbol))
+        task = asyncio.create_task(self._strategy_loop(strategy, symbol, api_key, api_secret, base_url))
 
         self.active_strategies[strategy_id] = {
             "instance": strategy,
@@ -103,23 +128,16 @@ class TradeService:
         else:
             raise ValueError(f"Strategy {strategy_id} not found")
 
-    async def _strategy_loop(self, strategy, symbol: str):
+    async def _strategy_loop(self, strategy, symbol: str, api_key: str, api_secret: str, base_url: str):
         """
         策略运行主循环 (模拟行情推送)
         实盘中应该对接 WebSocket 或 轮询 REST API
         """
-        # 使用现货测试网配置
-        api_key, api_secret = get_config(
-            "spot_test_api_key", "spot_test_secret_key", section="keys"
-        )
-        # testnet base_url
-        client = Client(api_key, api_secret, base_url="https://testnet.binance.vision")
+        # 使用传入的 keys 初始化一个 data client
+        client = Client(api_key, api_secret, base_url=base_url)
 
         # 启动策略
         await strategy.start()
-
-        # 记录上一次的 K 线时间，避免重复处理
-        last_kline_time = 0
 
         try:
             while True:

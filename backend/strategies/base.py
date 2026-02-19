@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 from backend.core.logger import get_logger
-from backend.core.event_bus import event_bus, Event, EventType
-from backend.services.base import BaseBroker, Order, OrderSide, OrderType
+from backend.core.event_bus import event_bus, Event
+from backend.enums.event import EventType
+from backend.exchange.base import BaseBroker
 
 
 class BaseStrategy(ABC):

@@ -6,9 +6,7 @@ mypy
 binance-connector
 binance-futures-connector
 pandas
-matplotlib
-plotly
-numpy
-requests
 pydantic
 aiohttp
+pydantic-settings
+pyyaml
